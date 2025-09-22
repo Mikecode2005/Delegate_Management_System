@@ -14,17 +14,15 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Detect browser's preferred color scheme and Streamlit theme
-config = st._config.get_option("theme.base")
-# Check for browser's dark mode preference
+# Detect theme with browser preference
 is_browser_dark = st.query_params.get("theme", ["light"])[0].lower() == "dark"
 
-# Set theme colors based on browser or manual selection
+# Initialize theme in session state
 if 'selected_theme' not in st.session_state:
-    st.session_state.selected_theme = "Auto"
+    st.session_state.selected_theme = "Auto" if not is_browser_dark else "Dark"
 
-# Default colors
-if is_browser_dark or st.session_state.selected_theme == "Dark":
+# Set colors based on theme
+if st.session_state.selected_theme == "Dark" or (st.session_state.selected_theme == "Auto" and is_browser_dark):
     primary_color = "#0A84FF"
     secondary_color = "#32D74B"
     tertiary_color = "#FF9500"
@@ -32,6 +30,7 @@ if is_browser_dark or st.session_state.selected_theme == "Dark":
     text_color = "#FAFAFA"
     card_bg = "#1E1F25"
     accent_color = "#FF2B55"
+    plotly_theme = "plotly_dark"
 else:
     primary_color = "#1F77B4"
     secondary_color = "#2CA02C"
@@ -40,31 +39,49 @@ else:
     text_color = "#000000"
     card_bg = "#F8F9FA"
     accent_color = "#D62728"
+    plotly_theme = "plotly_white"
 
-# Modern, compact, and vibrant CSS
+# Modern CSS with strong dark mode overrides
 st.markdown(f"""
 <style>
-    /* Global styles */
+    /* Force dark/light mode globally */
     .stApp {{
         background-color: {background_color} !important;
         color: {text_color} !important;
-        font-family: 'Inter', sans-serif;
     }}
-
-    /* Force Streamlit elements to respect dark mode */
+    [data-testid="stAppViewContainer"] {{
+        background-color: {background_color} !important;
+    }}
     .st-emotion-cache-1wmy9hl, .st-emotion-cache-1y4p8pa {{
         background-color: {background_color} !important;
         color: {text_color} !important;
     }}
-
-    /* Dashboard container */
+    .block-container {{
+        background-color: {background_color} !important;
+        color: {text_color} !important;
+    }}
+    /* Dataframe dark mode fix */
+    .dataframe {{
+        background-color: {card_bg} !important;
+        color: {text_color} !important;
+    }}
+    .dataframe th {{
+        background-color: {primary_color}20 !important;
+        color: {text_color} !important;
+    }}
+    .dataframe td {{
+        color: {text_color} !important;
+    }}
+    /* Plotly chart dark mode */
+    .js-plotly-plot {{
+        background-color: {background_color} !important;
+    }}
+    /* Rest of CSS */
     .dashboard-container {{
         max-width: 1600px;
         margin: 0 auto;
         padding: 1rem;
     }}
-
-    /* Header */
     .main-header {{
         font-size: 2.5rem;
         color: {primary_color};
@@ -76,23 +93,18 @@ st.markdown(f"""
         padding: 0.5rem;
         animation: slideIn 0.5s ease-in-out;
     }}
-
     @keyframes slideIn {{
         from {{ transform: translateY(-20px); opacity: 0; }}
         to {{ transform: translateY(0); opacity: 1; }}
     }}
-
-    /* Subheader */
     .subheader {{
         font-size: 1.5rem;
         color: {primary_color};
         font-weight: 600;
         margin: 0.5rem 0;
     }}
-
-    /* Cards */
     .card {{
-        background-color: {card_bg};
+        background-color: {card_bg} !important;
         border-radius: 12px;
         padding: 1rem;
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -101,146 +113,117 @@ st.markdown(f"""
         display: flex;
         flex-direction: column;
         justify-content: space-between;
+        color: {text_color} !important;
     }}
-
     .card:hover {{
         transform: translateY(-5px);
         box-shadow: 0 8px 16px rgba(0,0,0,0.2);
     }}
-
-    /* Buttons */
     .stButton>button {{
         background: linear-gradient(135deg, {primary_color}, {secondary_color});
-        color: white;
+        color: white !important;
         border: none;
         border-radius: 8px;
         padding: 0.5rem 1rem;
         font-weight: 600;
         transition: all 0.3s ease;
     }}
-
     .stButton>button:hover {{
         background: linear-gradient(135deg, {secondary_color}, {primary_color});
         transform: translateY(-2px);
         box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }}
-
     .stDownloadButton>button {{
         background: linear-gradient(135deg, {tertiary_color}, {accent_color});
-        color: white;
+        color: white !important;
         border-radius: 8px;
         padding: 0.5rem 1rem;
         font-weight: 600;
         transition: all 0.3s ease;
     }}
-
     .stDownloadButton>button:hover {{
         transform: translateY(-2px);
         box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }}
-
-    /* Metrics */
     .stMetric {{
-        background-color: {card_bg};
+        background-color: {card_bg} !important;
         border-radius: 8px;
         padding: 0.75rem;
         border-left: 4px solid {primary_color};
         margin-bottom: 0.5rem;
-        color: {text_color};
+        color: {text_color} !important;
     }}
-
-    /* Tabs */
     .stTabs [data-baseweb="tab-list"] {{
-        background-color: {card_bg};
+        background-color: {card_bg} !important;
         border-radius: 8px;
         padding: 0.5rem;
         gap: 8px;
     }}
-
     .stTabs [data-baseweb="tab"] {{
         background: linear-gradient(135deg, {primary_color}10, {secondary_color}10);
         border-radius: 8px;
         padding: 0.5rem 1rem;
         font-weight: 600;
-        color: {text_color};
+        color: {text_color} !important;
         transition: all 0.3s ease;
     }}
-
     .stTabs [aria-selected="true"] {{
         background: linear-gradient(135deg, {primary_color}, {secondary_color});
-        color: white;
+        color: white !important;
     }}
-
-    /* Dataframe */
     .dataframe {{
         border-radius: 8px;
         overflow: auto;
         max-height: 400px;
-        background-color: {card_bg};
-        color: {text_color};
+        background-color: {card_bg} !important;
+        color: {text_color} !important;
     }}
-
     .dataframe tr:hover {{
-        background-color: {primary_color}20;
+        background-color: {primary_color}20 !important;
     }}
-
-    /* Sidebar */
     section[data-testid="stSidebar"] {{
-        background: linear-gradient(180deg, {primary_color}10, {secondary_color}10);
+        background: linear-gradient(180deg, {primary_color}10, {secondary_color}10) !important;
         padding: 1rem;
-        color: {text_color};
+        color: {text_color} !important;
     }}
-
-    /* File uploader */
     .stFileUploader {{
         border: 2px dashed {primary_color};
         border-radius: 12px;
         padding: 1rem;
-        background-color: {card_bg};
+        background-color: {card_bg} !important;
         text-align: center;
-        color: {text_color};
+        color: {text_color} !important;
     }}
-
-    /* Messages */
     .stSuccess {{
-        background: linear-gradient(135deg, {secondary_color}20, {secondary_color}40);
+        background: linear-gradient(135deg, {secondary_color}20, {secondary_color}40) !important;
         border-radius: 8px;
-        color: {text_color};
+        color: {text_color} !important;
     }}
-
     .stWarning {{
-        background: linear-gradient(135deg, {accent_color}20, {accent_color}40);
+        background: linear-gradient(135deg, {accent_color}20, {accent_color}40) !important;
         border-radius: 8px;
-        color: {text_color};
+        color: {text_color} !important;
     }}
-
     .stInfo {{
-        background: linear-gradient(135deg, {primary_color}20, {primary_color}40);
+        background: linear-gradient(135deg, {primary_color}20, {primary_color}40) !important;
         border-radius: 8px;
-        color: {text_color};
+        color: {text_color} !important;
     }}
-
-    /* Expander */
     .stExpander {{
-        border: 1px solid {primary_color}20;
+        border: 1px solid {primary_color}20 !important;
         border-radius: 8px;
-        color: {text_color};
+        color: {text_color} !important;
     }}
-
     .stExpander summary {{
         font-weight: 600;
-        color: {primary_color};
+        color: {primary_color} !important;
     }}
-
-    /* Grid layout */
     .grid-container {{
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
         gap: 1rem;
         margin-bottom: 1rem;
     }}
-
-    /* Responsive adjustments */
     @media (max-width: 768px) {{
         .main-header {{
             font-size: 2rem;
@@ -272,27 +255,44 @@ if 'header_row' not in st.session_state:
 # Sidebar
 with st.sidebar:
     st.markdown(f'<h3 style="color: {primary_color};">⚙️ Control Panel</h3>', unsafe_allow_html=True)
-    theme = st.selectbox("Theme", ["Auto", "Dark", "Light", "Blue", "Green", "Purple", "Vibrant"], index=0, key="theme_select")
+    theme = st.selectbox("Theme", ["Auto", "Dark", "Light", "Blue", "Green", "Purple", "Vibrant"], index=0 if st.session_state.selected_theme == "Auto" else ["Auto", "Dark", "Light", "Blue", "Green", "Purple", "Vibrant"].index(st.session_state.selected_theme), key="theme_select")
     st.session_state.selected_theme = theme
+    # Recompute colors based on new theme
     if theme != "Auto":
         if theme == "Dark":
             primary_color, secondary_color, tertiary_color = "#0A84FF", "#32D74B", "#FF9500"
             background_color, text_color, card_bg, accent_color = "#0E1117", "#FAFAFA", "#1E1F25", "#FF2B55"
+            plotly_theme = "plotly_dark"
         elif theme == "Light":
             primary_color, secondary_color, tertiary_color = "#1F77B4", "#2CA02C", "#FF7F0E"
             background_color, text_color, card_bg, accent_color = "#FFFFFF", "#000000", "#F8F9FA", "#D62728"
+            plotly_theme = "plotly_white"
         elif theme == "Blue":
             primary_color, secondary_color, tertiary_color = "#1F77B4", "#AEC7E8", "#17BECF"
             background_color, text_color, card_bg, accent_color = "#FFFFFF", "#000000", "#F8F9FA", "#D62728"
+            plotly_theme = "plotly_white"
         elif theme == "Green":
             primary_color, secondary_color, tertiary_color = "#2CA02C", "#98DF8A", "#2E9945"
             background_color, text_color, card_bg, accent_color = "#FFFFFF", "#000000", "#F8F9FA", "#D62728"
+            plotly_theme = "plotly_white"
         elif theme == "Purple":
             primary_color, secondary_color, tertiary_color = "#9467BD", "#C5B0D5", "#756BB1"
             background_color, text_color, card_bg, accent_color = "#FFFFFF", "#000000", "#F8F9FA", "#D62728"
+            plotly_theme = "plotly_white"
         elif theme == "Vibrant":
             primary_color, secondary_color, tertiary_color = "#FF9500", "#FF2D55", "#5856D6"
             background_color, text_color, card_bg, accent_color = "#FFFFFF", "#000000", "#F8F9FA", "#D62728"
+            plotly_theme = "plotly_white"
+    else:
+        # Auto mode based on browser
+        if is_browser_dark:
+            primary_color, secondary_color, tertiary_color = "#0A84FF", "#32D74B", "#FF9500"
+            background_color, text_color, card_bg, accent_color = "#0E1117", "#FAFAFA", "#1E1F25", "#FF2B55"
+            plotly_theme = "plotly_dark"
+        else:
+            primary_color, secondary_color, tertiary_color = "#1F77B4", "#2CA02C", "#FF7F0E"
+            background_color, text_color, card_bg, accent_color = "#FFFFFF", "#000000", "#F8F9FA", "#D62728"
+            plotly_theme = "plotly_white"
     show_sample = st.checkbox("Show Sample Data", value=True)
     auto_ffill = st.checkbox("Auto Forward-Fill", value=True)
     chart_style = st.selectbox("Chart Style", ["Default", "Minimal", "Detailed", "Colorful"], index=3)
@@ -305,7 +305,7 @@ with st.sidebar:
 st.markdown('<div class="dashboard-container">', unsafe_allow_html=True)
 st.markdown('<h1 class="main-header">Delegate Management Dashboard</h1>', unsafe_allow_html=True)
 
-# Main content
+# Upload section - always shown
 st.markdown('<div class="card">', unsafe_allow_html=True)
 st.markdown(f'<h2 class="subheader">📤 Upload Data</h2>', unsafe_allow_html=True)
 uploaded_file = st.file_uploader("Upload Excel/CSV", type=["xlsx", "csv"], key="uploader")
@@ -317,7 +317,6 @@ if uploaded_file:
     else:
         temp_df = pd.read_excel(uploaded_file, header=None)
 
-    st.markdown('<div class="card">', unsafe_allow_html=True)
     with st.expander("🔍 Preview Raw Data", expanded=True):
         st.dataframe(temp_df.head(10), width='stretch')
 
@@ -357,8 +356,10 @@ if uploaded_file:
     st.session_state.original_columns = df.columns.tolist()
     st.session_state.processed = True
     st.success("Data uploaded successfully! 🎉")
-    st.markdown('</div>', unsafe_allow_html=True)
 
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Sample data - only if no uploaded data
 if show_sample and (st.session_state.df is None or st.session_state.df.empty):
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.markdown('<h2 class="subheader">📋 Sample Data</h2>', unsafe_allow_html=True)
@@ -380,11 +381,8 @@ if show_sample and (st.session_state.df is None or st.session_state.df.empty):
     st.dataframe(sample_data, width='stretch')
     st.markdown('</div>', unsafe_allow_html=True)
 
-if st.session_state.df is None or st.session_state.df.empty:
-    st.info("Upload a file or enable sample data to start managing delegates.")
-    st.markdown('</div>', unsafe_allow_html=True)
-else:
-    # Modern dashboard layout with grid
+# Only show dashboard sections if data is available
+if st.session_state.df is not None and not st.session_state.df.empty:
     st.markdown('<div class="grid-container">', unsafe_allow_html=True)
 
     # Overview Card
@@ -459,7 +457,7 @@ else:
                 st.success("Reset successful")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # Search & Filter Card
+    # Search & Filter Card - only shown if data exists
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.markdown('<h2 class="subheader">🔍 Search & Filter</h2>', unsafe_allow_html=True)
     tabs = st.tabs(["Individual", "Multi-Filter", "Analysis", "Export"])
@@ -502,7 +500,7 @@ else:
             else:
                 st.warning("No matches")
         else:
-            st.warning("Enter search terms to find records.")
+            st.info("Enter search terms to find records.")
 
     with tabs[1]:
         st.markdown(f'<h3 style="color: {tertiary_color};">🎚️ Multi-Filter</h3>', unsafe_allow_html=True)
@@ -562,7 +560,7 @@ else:
         if gender_col:
             with col1:
                 gender_cnt = st.session_state.df[gender_col].value_counts()
-                fig_gender = px.pie(values=gender_cnt.values, names=gender_cnt.index, title="Gender", color_discrete_sequence=color_seq)
+                fig_gender = px.pie(values=gender_cnt.values, names=gender_cnt.index, title="Gender", color_discrete_sequence=color_seq, template=plotly_theme)
                 fig_gender.update_traces(textposition='inside', textinfo='percent+label', textfont=dict(color=text_color))
                 fig_gender.update_layout(paper_bgcolor=background_color, font_color=text_color)
                 st.plotly_chart(fig_gender, width='stretch')
@@ -574,20 +572,20 @@ else:
                     labels = ['<20', '20-29', '30-39', '40-49', '50-59', '60+']
                     age_groups = pd.cut(age_data, bins, labels=labels)
                     age_cnt = age_groups.value_counts().sort_index()
-                    fig_age = px.bar(x=age_cnt.index, y=age_cnt.values, title="Age Groups", color=age_cnt.index, color_discrete_sequence=color_seq)
+                    fig_age = px.bar(x=age_cnt.index, y=age_cnt.values, title="Age Groups", color=age_cnt.index, color_discrete_sequence=color_seq, template=plotly_theme)
                     fig_age.update_layout(paper_bgcolor=background_color, font_color=text_color)
                     st.plotly_chart(fig_age, width='stretch')
         col3, col4 = st.columns(2)
         if batch_col:
             with col3:
                 batch_cnt = st.session_state.df[batch_col].value_counts()
-                fig_batch = px.bar(x=batch_cnt.index, y=batch_cnt.values, title="Batches", color=batch_cnt.index, color_discrete_sequence=color_seq)
+                fig_batch = px.bar(x=batch_cnt.index, y=batch_cnt.values, title="Batches", color=batch_cnt.index, color_discrete_sequence=color_seq, template=plotly_theme)
                 fig_batch.update_layout(paper_bgcolor=background_color, font_color=text_color)
                 st.plotly_chart(fig_batch, width='stretch')
         if company_col:
             with col4:
                 comp_cnt = st.session_state.df[company_col].value_counts().head(10)
-                fig_comp = px.bar(y=comp_cnt.index, x=comp_cnt.values, orientation='h', title="Top Companies", color=comp_cnt.index, color_discrete_sequence=color_seq)
+                fig_comp = px.bar(y=comp_cnt.index, x=comp_cnt.values, orientation='h', title="Top Companies", color=comp_cnt.index, color_discrete_sequence=color_seq, template=plotly_theme)
                 fig_comp.update_layout(paper_bgcolor=background_color, font_color=text_color)
                 st.plotly_chart(fig_comp, width='stretch')
 
@@ -615,5 +613,10 @@ else:
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
+# Show message if no data
+else:
+    st.info("Upload a file or enable sample data to start managing delegates.")
+    st.markdown('</div>', unsafe_allow_html=True)
+
 # Footer
-st.markdown(f'<div style="text-align: center; color: {primary_color}; padding: 1rem;">Delegate Management Dashboard v3.3 | Powered by Streamlit</div>', unsafe_allow_html=True)
+st.markdown(f'<div style="text-align: center; color: {primary_color}; padding: 1rem; background-color: {background_color};">Delegate Management Dashboard v3.4 | Powered by Streamlit</div>', unsafe_allow_html=True)
