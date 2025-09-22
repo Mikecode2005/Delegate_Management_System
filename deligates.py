@@ -14,9 +14,17 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Detect theme
+# Detect browser's preferred color scheme and Streamlit theme
 config = st._config.get_option("theme.base")
-if config == "dark":
+# Check for browser's dark mode preference
+is_browser_dark = st.query_params.get("theme", ["light"])[0].lower() == "dark"
+
+# Set theme colors based on browser or manual selection
+if 'selected_theme' not in st.session_state:
+    st.session_state.selected_theme = "Auto"
+
+# Default colors
+if is_browser_dark or st.session_state.selected_theme == "Dark":
     primary_color = "#0A84FF"
     secondary_color = "#32D74B"
     tertiary_color = "#FF9500"
@@ -38,9 +46,15 @@ st.markdown(f"""
 <style>
     /* Global styles */
     .stApp {{
-        background-color: {background_color};
-        color: {text_color};
+        background-color: {background_color} !important;
+        color: {text_color} !important;
         font-family: 'Inter', sans-serif;
+    }}
+
+    /* Force Streamlit elements to respect dark mode */
+    .st-emotion-cache-1wmy9hl, .st-emotion-cache-1y4p8pa {{
+        background-color: {background_color} !important;
+        color: {text_color} !important;
     }}
 
     /* Dashboard container */
@@ -132,6 +146,7 @@ st.markdown(f"""
         padding: 0.75rem;
         border-left: 4px solid {primary_color};
         margin-bottom: 0.5rem;
+        color: {text_color};
     }}
 
     /* Tabs */
@@ -161,16 +176,19 @@ st.markdown(f"""
         border-radius: 8px;
         overflow: auto;
         max-height: 400px;
+        background-color: {card_bg};
+        color: {text_color};
     }}
 
     .dataframe tr:hover {{
-        background-color: {primary_color}10;
+        background-color: {primary_color}20;
     }}
 
     /* Sidebar */
     section[data-testid="stSidebar"] {{
         background: linear-gradient(180deg, {primary_color}10, {secondary_color}10);
         padding: 1rem;
+        color: {text_color};
     }}
 
     /* File uploader */
@@ -180,6 +198,7 @@ st.markdown(f"""
         padding: 1rem;
         background-color: {card_bg};
         text-align: center;
+        color: {text_color};
     }}
 
     /* Messages */
@@ -205,6 +224,7 @@ st.markdown(f"""
     .stExpander {{
         border: 1px solid {primary_color}20;
         border-radius: 8px;
+        color: {text_color};
     }}
 
     .stExpander summary {{
@@ -249,23 +269,30 @@ if 'uploaded_file' not in st.session_state:
 if 'header_row' not in st.session_state:
     st.session_state.header_row = None
 
-# Dashboard container
-st.markdown('<div class="dashboard-container">', unsafe_allow_html=True)
-st.markdown('<h1 class="main-header">Delegate Management Dashboard</h1>', unsafe_allow_html=True)
-
 # Sidebar
 with st.sidebar:
     st.markdown(f'<h3 style="color: {primary_color};">⚙️ Control Panel</h3>', unsafe_allow_html=True)
-    theme = st.selectbox("Theme", ["Auto", "Blue", "Green", "Purple", "Vibrant"], index=0)
+    theme = st.selectbox("Theme", ["Auto", "Dark", "Light", "Blue", "Green", "Purple", "Vibrant"], index=0, key="theme_select")
+    st.session_state.selected_theme = theme
     if theme != "Auto":
-        if theme == "Blue":
+        if theme == "Dark":
+            primary_color, secondary_color, tertiary_color = "#0A84FF", "#32D74B", "#FF9500"
+            background_color, text_color, card_bg, accent_color = "#0E1117", "#FAFAFA", "#1E1F25", "#FF2B55"
+        elif theme == "Light":
+            primary_color, secondary_color, tertiary_color = "#1F77B4", "#2CA02C", "#FF7F0E"
+            background_color, text_color, card_bg, accent_color = "#FFFFFF", "#000000", "#F8F9FA", "#D62728"
+        elif theme == "Blue":
             primary_color, secondary_color, tertiary_color = "#1F77B4", "#AEC7E8", "#17BECF"
+            background_color, text_color, card_bg, accent_color = "#FFFFFF", "#000000", "#F8F9FA", "#D62728"
         elif theme == "Green":
             primary_color, secondary_color, tertiary_color = "#2CA02C", "#98DF8A", "#2E9945"
+            background_color, text_color, card_bg, accent_color = "#FFFFFF", "#000000", "#F8F9FA", "#D62728"
         elif theme == "Purple":
             primary_color, secondary_color, tertiary_color = "#9467BD", "#C5B0D5", "#756BB1"
+            background_color, text_color, card_bg, accent_color = "#FFFFFF", "#000000", "#F8F9FA", "#D62728"
         elif theme == "Vibrant":
             primary_color, secondary_color, tertiary_color = "#FF9500", "#FF2D55", "#5856D6"
+            background_color, text_color, card_bg, accent_color = "#FFFFFF", "#000000", "#F8F9FA", "#D62728"
     show_sample = st.checkbox("Show Sample Data", value=True)
     auto_ffill = st.checkbox("Auto Forward-Fill", value=True)
     chart_style = st.selectbox("Chart Style", ["Default", "Minimal", "Detailed", "Colorful"], index=3)
@@ -273,6 +300,10 @@ with st.sidebar:
     st.button("Documentation")
     st.button("Support")
     st.markdown(f'<p style="text-align: center; color: {text_color};">Built with Streamlit</p>', unsafe_allow_html=True)
+
+# Dashboard container
+st.markdown('<div class="dashboard-container">', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header">Delegate Management Dashboard</h1>', unsafe_allow_html=True)
 
 # Main content
 st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -532,7 +563,8 @@ else:
             with col1:
                 gender_cnt = st.session_state.df[gender_col].value_counts()
                 fig_gender = px.pie(values=gender_cnt.values, names=gender_cnt.index, title="Gender", color_discrete_sequence=color_seq)
-                fig_gender.update_traces(textposition='inside', textinfo='percent+label')
+                fig_gender.update_traces(textposition='inside', textinfo='percent+label', textfont=dict(color=text_color))
+                fig_gender.update_layout(paper_bgcolor=background_color, font_color=text_color)
                 st.plotly_chart(fig_gender, width='stretch')
         if 'Age' in st.session_state.df.columns:
             with col2:
@@ -543,17 +575,20 @@ else:
                     age_groups = pd.cut(age_data, bins, labels=labels)
                     age_cnt = age_groups.value_counts().sort_index()
                     fig_age = px.bar(x=age_cnt.index, y=age_cnt.values, title="Age Groups", color=age_cnt.index, color_discrete_sequence=color_seq)
+                    fig_age.update_layout(paper_bgcolor=background_color, font_color=text_color)
                     st.plotly_chart(fig_age, width='stretch')
         col3, col4 = st.columns(2)
         if batch_col:
             with col3:
                 batch_cnt = st.session_state.df[batch_col].value_counts()
                 fig_batch = px.bar(x=batch_cnt.index, y=batch_cnt.values, title="Batches", color=batch_cnt.index, color_discrete_sequence=color_seq)
+                fig_batch.update_layout(paper_bgcolor=background_color, font_color=text_color)
                 st.plotly_chart(fig_batch, width='stretch')
         if company_col:
             with col4:
                 comp_cnt = st.session_state.df[company_col].value_counts().head(10)
                 fig_comp = px.bar(y=comp_cnt.index, x=comp_cnt.values, orientation='h', title="Top Companies", color=comp_cnt.index, color_discrete_sequence=color_seq)
+                fig_comp.update_layout(paper_bgcolor=background_color, font_color=text_color)
                 st.plotly_chart(fig_comp, width='stretch')
 
     with tabs[3]:
@@ -581,4 +616,4 @@ else:
     st.markdown('</div>', unsafe_allow_html=True)
 
 # Footer
-st.markdown(f'<div style="text-align: center; color: {primary_color}; padding: 1rem;">Delegate Management Dashboard v3.2 | Powered by Streamlit</div>', unsafe_allow_html=True)
+st.markdown(f'<div style="text-align: center; color: {primary_color}; padding: 1rem;">Delegate Management Dashboard v3.3 | Powered by Streamlit</div>', unsafe_allow_html=True)
