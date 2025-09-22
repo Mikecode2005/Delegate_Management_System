@@ -6,6 +6,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 import numpy as np
+import random
 
 # Set page configuration
 st.set_page_config(
@@ -15,27 +16,22 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for better styling
+# Custom CSS with better dark mode compatibility
+# Use relative colors and avoid fixed light backgrounds
 st.markdown("""
 <style>
     /* Main headers */
     .main-header {
         font-size: 3rem;
-        color: #1f77b4;
         text-align: center;
         margin-bottom: 2rem;
         font-weight: 700;
-        background: linear-gradient(135deg, #1f77b4, #2ca02c);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
         padding: 10px;
     }
 
     /* Subheaders */
     .subheader {
         font-size: 1.8rem;
-        color: #1f77b4;
-        border-bottom: 3px solid #1f77b4;
         padding-bottom: 0.5rem;
         margin-top: 1.5rem;
         margin-bottom: 1rem;
@@ -45,7 +41,6 @@ st.markdown("""
     /* Buttons */
     .stButton>button {
         width: 100%;
-        background: linear-gradient(135deg, #1f77b4, #2ca02c);
         color: white;
         border: none;
         border-radius: 8px;
@@ -61,7 +56,6 @@ st.markdown("""
 
     .stDownloadButton>button {
         width: 100%;
-        background: linear-gradient(135deg, #2ca02c, #1f77b4);
         color: white;
         border: none;
         border-radius: 8px;
@@ -77,30 +71,24 @@ st.markdown("""
 
     /* Info boxes */
     .info-box {
-        background: linear-gradient(135deg, #f0f2f6, #e6f7ff);
         padding: 1.5rem;
         border-radius: 12px;
         margin-bottom: 1.5rem;
-        border-left: 5px solid #1f77b4;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
 
     /* Filter boxes */
     .filter-box {
-        background: linear-gradient(135deg, #e6f7ff, #f0f2f6);
         padding: 1.5rem;
         border-radius: 12px;
         margin-bottom: 1.5rem;
-        border-left: 5px solid #2ca02c;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
 
     /* Metrics */
     .stMetric {
-        background-color: #f8f9fa;
         padding: 1rem;
         border-radius: 12px;
-        border-left: 4px solid #1f77b4;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
@@ -110,18 +98,11 @@ st.markdown("""
     }
 
     .stTabs [data-baseweb="tab"] {
-        background: #f0f2f6;
         border-radius: 8px 8px 0 0;
         padding: 10px 16px;
         font-weight: 600;
         border-bottom: 3px solid transparent;
         transition: all 0.3s ease;
-    }
-
-    .stTabs [aria-selected="true"] {
-        background-color: #1f77b4;
-        color: white;
-        border-bottom: 3px solid #2ca02c;
     }
 
     /* Dataframes */
@@ -132,33 +113,28 @@ st.markdown("""
 
     /* Sidebar */
     .css-1d391kg {
-        background: linear-gradient(135deg, #f8f9fa, #e6f7ff);
     }
 
     /* File uploader */
     .stFileUploader {
-        border: 2px dashed #1f77b4;
+        border: 2px dashed;
         border-radius: 12px;
         padding: 20px;
-        background-color: #f8f9fa;
     }
 
     /* Success messages */
     .stSuccess {
         border-radius: 8px;
-        background: linear-gradient(135deg, #d4edda, #c3e6cb);
     }
 
     /* Warning messages */
     .stWarning {
         border-radius: 8px;
-        background: linear-gradient(135deg, #fff3cd, #ffeaa7);
     }
 
     /* Info messages */
     .stInfo {
         border-radius: 8px;
-        background: linear-gradient(135deg, #d1ecf1, #bee5eb);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -197,27 +173,49 @@ if 'filtered_data' not in st.session_state:
 if 'original_columns' not in st.session_state:
     st.session_state.original_columns = None
 
+header_row = None
+
 if uploaded_file:
-    # Read data
+    # Initial read to detect possible header
     if uploaded_file.name.endswith(".csv"):
-        df = pd.read_csv(uploaded_file)
+        temp_df = pd.read_csv(uploaded_file, header=None)
     else:
-        # Improved reading logic for the specific Excel format
-        try:
-            # Read first few rows to detect title row
-            test_df = pd.read_excel(uploaded_file, nrows=2, header=None)  # Read without header to inspect raw rows
-            first_row_content = ' '.join([str(cell) for cell in test_df.iloc[0].fillna('').values if str(cell).strip()])
-            if "COMPRESSED AIR EMERGENCY BREATHING SYSTEM TRAINING" in first_row_content:
-                # Skip the title row (row 0), use row 1 as header, data from row 2
-                df = pd.read_excel(uploaded_file, skiprows=1, header=0)
-            else:
-                df = pd.read_excel(uploaded_file)
-        except Exception as e:
-            st.warning(f"Error reading file: {e}. Falling back to default read.")
-            df = pd.read_excel(uploaded_file)
+        temp_df = pd.read_excel(uploaded_file, header=None)
+
+    # Show preview of first few rows
+    st.markdown("### 🔍 Raw Data Preview (First 5 Rows)")
+    st.dataframe(temp_df.head(5), use_container_width=True)
+
+    # Let user choose header row
+    header_options = list(range(len(temp_df.head(5))))
+    header_row = st.selectbox(
+        "Select Header Row (0-based index)",
+        options=header_options,
+        index=1 if "COMPRESSED AIR EMERGENCY BREATHING SYSTEM TRAINING" in ' '.join(str(x) for x in temp_df.iloc[0]) else 0,
+        help="Choose which row contains the column headers"
+    )
+
+    # Read with selected header
+    if uploaded_file.name.endswith(".csv"):
+        df = pd.read_csv(uploaded_file, header=header_row, dtype=str)  # Read all as str to preserve numbers
+    else:
+        df = pd.read_excel(uploaded_file, header=header_row, dtype=str)  # Read all as str
 
     # Clean up any leading/trailing whitespace in column names
     df.columns = df.columns.str.strip()
+
+    # Forward-fill merged cells for specific columns
+    ffill_cols = []
+    for col in df.columns:
+        if any(x in col.upper() for x in ['BATCH', 'COURSE DATE', 'ISSUED DATE', 'EXPIRY DATE']):
+            ffill_cols.append(col)
+    if ffill_cols:
+        df[ffill_cols] = df[ffill_cols].ffill()
+
+    # Convert phone number columns to string and preserve full values
+    for col in df.columns:
+        if any(x in col.upper() for x in ['NUMBER', 'PHONE', 'NOK', 'CONTACT']):
+            df[col] = df[col].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
 
     # Store original column names
     st.session_state.original_columns = df.columns.tolist()
@@ -245,8 +243,8 @@ if uploaded_file:
         try:
             # Convert to datetime, coercing errors
             df[dob_col] = pd.to_datetime(df[dob_col], errors='coerce')
-            df['Age'] = (pd.to_datetime('today') - df[dob_col]).dt.days // 365.25
-            df['Age'] = df['Age'].fillna(0).astype(int)
+            current_date = pd.to_datetime('today')
+            df['Age'] = ((current_date - df[dob_col]).dt.days // 365.25).astype('Int64')
         except Exception as e:
             st.warning(f"Could not calculate ages: {e}")
 
@@ -332,24 +330,22 @@ if uploaded_file:
             text_cols = st.session_state.df.select_dtypes(include=['object']).columns
             for col in text_cols:
                 if col != 'Full Name':  # Skip computed column
-                    st.session_state.df[col] = st.session_state.df[col].astype(str).str.title().str.strip()
+                    st.session_state.df.loc[:, col] = st.session_state.df[col].astype(str).str.title().str.strip()
             st.success("Standardized text columns")
 
         if st.button("Reset Changes", help="Revert to original data"):
             # Reload from uploaded file to reset
             if uploaded_file.name.endswith(".csv"):
-                reset_df = pd.read_csv(uploaded_file)
+                reset_df = pd.read_csv(uploaded_file, header=header_row, dtype=str)
             else:
-                try:
-                    test_df = pd.read_excel(uploaded_file, nrows=2, header=None)
-                    first_row_content = ' '.join([str(cell) for cell in test_df.iloc[0].fillna('').values if str(cell).strip()])
-                    if "COMPRESSED AIR EMERGENCY BREATHING SYSTEM TRAINING" in first_row_content:
-                        reset_df = pd.read_excel(uploaded_file, skiprows=1, header=0)
-                    else:
-                        reset_df = pd.read_excel(uploaded_file)
-                except:
-                    reset_df = pd.read_excel(uploaded_file)
+                reset_df = pd.read_excel(uploaded_file, header=header_row, dtype=str)
             reset_df.columns = reset_df.columns.str.strip()
+            # Re-apply ffill
+            reset_df[ffill_cols] = reset_df[ffill_cols].ffill()
+            # Re-apply phone fixes
+            for col in reset_df.columns:
+                if any(x in col.upper() for x in ['NUMBER', 'PHONE', 'NOK', 'CONTACT']):
+                    reset_df[col] = reset_df[col].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
             st.session_state.df = reset_df.copy()
             st.success("Reset to original data")
 
@@ -593,26 +589,18 @@ if uploaded_file:
                 st.warning("No gender data available for visualization.")
 
         # Age analysis
-        age_col = None
-        dob_col = None
-        for col in st.session_state.df.columns:
-            if 'AGE' in str(col).upper():
-                age_col = col
-            if any(x in str(col).upper() for x in ['DOB', 'BIRTH']):
-                dob_col = col
+        age_col = 'Age' if 'Age' in st.session_state.df.columns else None
 
-        if age_col and 'Age' in st.session_state.df.columns:
+        if age_col:
             st.markdown("#### 📊 Age Distribution")
-            age_data = st.session_state.df['Age'].dropna()
+            age_data = st.session_state.df[age_col].dropna().astype(float)  # Ensure numeric
             if not age_data.empty and len(age_data) > 0:
                 # Create age groups
-                bins = [0, 20, 30, 40, 50, 60, 100]
+                bins = [0, 20, 30, 40, 50, 60, np.inf]
                 labels = ['Under 20', '20-29', '30-39', '40-49', '50-59', '60+']
                 age_groups = pd.cut(age_data, bins=bins, labels=labels, right=False, include_lowest=True)
-
-                age_group_counts = age_groups.value_counts().reset_index()
+                age_group_counts = age_groups.value_counts(sort=False).reset_index()
                 age_group_counts.columns = ['Age Group', 'Count']
-                age_group_counts = age_group_counts.sort_values('Age Group')
 
                 fig = px.bar(
                     age_group_counts,
@@ -625,8 +613,6 @@ if uploaded_file:
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.warning("No valid age data available for visualization.")
-        elif dob_col:
-            st.info("Age column not computed. Please check DoB data.")
 
         # Batch analysis
         batch_col = None
@@ -750,41 +736,53 @@ if uploaded_file:
         st.markdown("</div>", unsafe_allow_html=True)
 
 else:
-    # Show sample data if no file uploaded
+    # Show randomized sample data if no file uploaded
     if show_sample:
         st.markdown("### 📋 Sample Data Format")
+        
+        # Generate randomized sample data
+        first_names = ["EMMANUEL", "EMEM", "DENNIS", "ALICE", "BOB", "CHARLIE", "DAVID", "EVA", "FRANK", "GRACE"]
+        middle_names = ["AKPABIO", "UDOFIA", "ONYEDIKA", "MARIA", "JOHN", "LEE", "KIM", "SOPHIA", "JAMES", "ANNA"]
+        last_names = ["ADAMS", "JACKSON", "NEBOLISA", "SMITH", "JOHNSON", "WILLIAMS", "BROWN", "JONES", "GARCIA", "MILLER"]
+        genders = ["MALE", "FEMALE"]
+        companies = ["SELF", "EBBY-TEK SERVICES LIMITED", "TECH CORP", "OIL INC", "MARINE LTD"]
+        job_titles = ["MARITIME SECURITY OFFICER (MSO)", "TECHNICAL MANAGER", "ENGINEER", "ANALYST", "SUPERVISOR"]
+        emails = ["-", "udeme72@yahoo.com", "admin@ebbytek.com", "alice@example.com", "bob@company.com"]
+        remarks = [
+            "I am highly satisfied and impressed by the level of indepth professionalism shown here in ALPATECH.",
+            "I am deeply impressed by the professionalism of the instructors. More awarness(advertisment) should be done about ALPATECH.",
+            "Great experience!", "Very informative.", "Well organized."
+        ]
+
+        num_samples = random.randint(5, 10)  # Random number of rows
         sample_data = pd.DataFrame({
-            "S/N": [1, 2, 3],
-            "FIRST NAME": ["EMMANUEL", "EMEM", "DENNIS"],
-            "MIDDLE NAME": ["AKPABIO", "UDOFIA", "ONYEDIKA"],
-            "LAST NAME": ["ADAMS", "JACKSON", "NEBOLISA"],
-            "GENDER": ["MALE", "MALE", "MALE"],
-            "DoB": ["1973-10-10", "1972-05-13", "1990-08-28"],
-            "COMPANY NAME": ["SELF", "SELF", "EBBY-TEK SERVICES LIMITED"],
-            "JOB TITLE": ["MARITIME SECURITY OFFICER (MSO)", "MARITIME SECURITY OFFICER (MSO)", "TECHNICAL MANAGER"],
-            "CONTACT NUMBER": ["08034595340", "08033543949", "08154357494"],
-            "EMAIL ADDRESS": ["-", "udeme72@yahoo.com", "admin@ebbytek.com"],
-            "NoK NAME": ["MRS NSIDEBE EMMANUEL ADAMS", "MRS NSEOBONG EMEM KACKSON", "IYKE AMANFO"],
-            "NoK NUMBER": ["08034595340", "08022597768", "08022230944"],
-            "ID CARD NUMBER": ["AENL/A24/01/0001", "AENL/A24/01/0002", ""],
-            "CERTIFICATE NUMBER": ["EBS202431220001", "EBS202431220002", ""],
-            "ISSUED DATE": ["2024-03-08", "2024-03-08", ""],
-            "EXPIRY DATE": ["2028-03-07", "2028-03-07", ""],
-            "COURSE DATE": ["8th March, 2024", "", "5th June, 2025"],
-            "BATCH": ["1/24", "", "1/25"],
-            "DELEGATE'S REMARK": [
-                "I am highly satisfied and impressed by the level of indepth professionalism shown here in ALPATECH.",
-                "I am deeply impressed by the professionalism of the instructors. More awarness(advertisment) should be done about ALPATECH.",
-                ""
-            ],
-            "RESOLUTION": ["", "", ""]
+            "S/N": list(range(1, num_samples + 1)),
+            "FIRST NAME": random.choices(first_names, k=num_samples),
+            "MIDDLE NAME": random.choices(middle_names, k=num_samples),
+            "LAST NAME": random.choices(last_names, k=num_samples),
+            "GENDER": random.choices(genders, k=num_samples),
+            "DoB": [f"{random.randint(1970, 2000)}-{random.randint(1,12):02d}-{random.randint(1,28):02d}" for _ in range(num_samples)],
+            "COMPANY NAME": random.choices(companies, k=num_samples),
+            "JOB TITLE": random.choices(job_titles, k=num_samples),
+            "CONTACT NUMBER": [f"080{random.randint(10000000, 99999999)}" for _ in range(num_samples)],
+            "EMAIL ADDRESS": random.choices(emails, k=num_samples),
+            "NoK NAME": [f"MRS {random.choice(first_names)} {random.choice(last_names)}" for _ in range(num_samples)],
+            "NoK NUMBER": [f"080{random.randint(10000000, 99999999)}" for _ in range(num_samples)],
+            "ID CARD NUMBER": [f"AENL/A24/01/{random.randint(1,999):04d}" for _ in range(num_samples)],
+            "CERTIFICATE NUMBER": [f"EBS2024{random.randint(1000,9999)}" for _ in range(num_samples)],
+            "ISSUED DATE": [f"2024-{random.randint(1,12):02d}-{random.randint(1,28):02d}" for _ in range(num_samples)],
+            "EXPIRY DATE": [f"2028-{random.randint(1,12):02d}-{random.randint(1,28):02d}" for _ in range(num_samples)],
+            "COURSE DATE": random.choices(["8th March, 2024", "5th June, 2025", "15th July, 2024"], k=num_samples),
+            "BATCH": random.choices(["1/24", "1/25", "2/24"], k=num_samples),
+            "DELEGATE'S REMARK": random.choices(remarks, k=num_samples),
+            "RESOLUTION": [""] * num_samples
         })
         st.dataframe(sample_data)
 
     # Upload prompt with better styling
     st.markdown("""
-    <div style='text-align: center; padding: 40px; border: 2px dashed #1f77b4; border-radius: 12px; background-color: #f8f9fa;'>
-        <h3 style='color: #1f77b4;'>📤 Upload Your Data to Get Started</h3>
+    <div style='text-align: center; padding: 40px; border: 2px dashed; border-radius: 12px;'>
+        <h3>📤 Upload Your Data to Get Started</h3>
         <p>Please upload an Excel file with delegate information.</p>
         <p>Supported format: Excel files with columns like FIRST NAME, LAST NAME, COMPANY NAME, CERTIFICATE NUMBER, etc.</p>
     </div>
@@ -795,7 +793,7 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: #6c757d;'>
-        <p>Delegate Management System v1.0 | Built with Streamlit</p>
+        <p>Delegate Management System v1.1 | Built with Streamlit</p>
     </div>
     """,
     unsafe_allow_html=True
