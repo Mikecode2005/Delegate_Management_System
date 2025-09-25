@@ -49,15 +49,23 @@ st.markdown(f"""
         background-color: {background_color} !important;
         color: {text_color} !important;
     }}
+    /* Ensure all text elements inherit text color */
+    body, p, div, span, label, input, select, textarea, button, h1, h2, h3, h4, h5, h6, .stMarkdown, .stText, .stSelectbox, .stTextInput, .stRadio, .stCheckbox, .stMetricLabel, .stMetricValue {{
+        color: {text_color} !important;
+    }}
     /* Dataframe dark mode fix */
-    .dataframe, .dataframe th, .dataframe td {{
+    .dataframe, .dataframe th, .dataframe td, .stDataFrame, .stDataFrame * {{
         background-color: {card_bg} !important;
         color: {text_color} !important;
         border: 1px solid {primary_color}20 !important;
     }}
     /* Plotly chart dark mode */
-    .js-plotly-plot, .plotly {{
+    .js-plotly-plot, .plotly, .plot-container, .plotly .modebar-btn {{
         background-color: {background_color} !important;
+        color: {text_color} !important;
+    }}
+    .plotly .modebar-btn, .plotly .modebar-btn text, .plotly .modebar-btn span {{
+        fill: {text_color} !important;
         color: {text_color} !important;
     }}
     /* Dashboard container */
@@ -85,7 +93,7 @@ st.markdown(f"""
     /* Subheader */
     .subheader {{
         font-size: 1.5rem;
-        color: {primary_color};
+        color: {primary_color} !important;
         font-weight: 600;
         margin: 0.5rem 0;
     }}
@@ -142,6 +150,9 @@ st.markdown(f"""
         margin-bottom: 0.5rem;
         color: {text_color} !important;
     }}
+    .stMetric * {{
+        color: {text_color} !important;
+    }}
     /* Tabs */
     .stTabs [data-baseweb="tab-list"] {{
         background-color: {card_bg} !important;
@@ -167,6 +178,9 @@ st.markdown(f"""
         padding: 1rem;
         color: {text_color} !important;
     }}
+    section[data-testid="stSidebar"] * {{
+        color: {text_color} !important;
+    }}
     /* File uploader */
     .stFileUploader {{
         border: 2px dashed {primary_color};
@@ -176,12 +190,19 @@ st.markdown(f"""
         text-align: center;
         color: {text_color} !important;
     }}
+    .stFileUploader * {{
+        color: {text_color} !important;
+    }}
     /* Messages */
     .stSuccess, .stWarning, .stInfo {{
         background: linear-gradient(135deg, {secondary_color}20, {secondary_color}40) !important;
         border-radius: 8px;
         color: {text_color} !important;
     }}
+    .stSuccess *, .stWarning *, .stInfo * {{
+        color: {text_color} !important;
+    }}
+    /* Expander */
     .stExpander {{
         border: 1px solid {primary_color}20 !important;
         border-radius: 8px;
@@ -190,6 +211,9 @@ st.markdown(f"""
     .stExpander summary {{
         font-weight: 600;
         color: {primary_color} !important;
+    }}
+    .stExpander * {{
+        color: {text_color} !important;
     }}
     /* Grid layout */
     .grid-container {{
@@ -244,19 +268,19 @@ with st.sidebar:
             plotly_theme = "plotly_white"
         elif theme == "Blue":
             primary_color, secondary_color, tertiary_color = "#1F77B4", "#AEC7E8", "#17BECF"
-            background_color, text_color, card_bg, accent_color = "#FFFFFF", "#000000", "#F8F9FA", "#D62728"
+            background_color, text_color, card_bg, accent_color = "#E6F0FA", "#000000", "#F0F8FF", "#D62728"
             plotly_theme = "plotly_white"
         elif theme == "Green":
             primary_color, secondary_color, tertiary_color = "#2CA02C", "#98DF8A", "#2E9945"
-            background_color, text_color, card_bg, accent_color = "#FFFFFF", "#000000", "#F8F9FA", "#D62728"
+            background_color, text_color, card_bg, accent_color = "#E8F5E9", "#000000", "#F1F8F0", "#D62728"
             plotly_theme = "plotly_white"
         elif theme == "Purple":
             primary_color, secondary_color, tertiary_color = "#9467BD", "#C5B0D5", "#756BB1"
-            background_color, text_color, card_bg, accent_color = "#FFFFFF", "#000000", "#F8F9FA", "#D62728"
+            background_color, text_color, card_bg, accent_color = "#F3E8FF", "#000000", "#F8F0FF", "#D62728"
             plotly_theme = "plotly_white"
         elif theme == "Vibrant":
             primary_color, secondary_color, tertiary_color = "#FF9500", "#FF2D55", "#5856D6"
-            background_color, text_color, card_bg, accent_color = "#FFFFFF", "#000000", "#F8F9FA", "#D62728"
+            background_color, text_color, card_bg, accent_color = "#FFF7E6", "#000000", "#FFF0E0", "#D62728"
             plotly_theme = "plotly_white"
     else:
         if is_browser_dark:
@@ -292,7 +316,7 @@ if uploaded_file:
         temp_df = pd.read_excel(uploaded_file, header=None)
 
     with st.expander("🔍 Preview Raw Data", expanded=True):
-        st.dataframe(temp_df.head(10), width='stretch')
+        st.dataframe(temp_df.head(10), use_container_width=True)
 
     header_row = st.selectbox("Header Row (0-based)", list(range(len(temp_df.head(10)))), index=1)
     st.session_state.header_row = header_row
@@ -351,7 +375,7 @@ if show_sample and (st.session_state.df is None or st.session_state.df.empty):
     st.session_state.df = sample_data
     st.session_state.original_columns = sample_data.columns.tolist()
     st.session_state.processed = True
-    st.dataframe(sample_data, width='stretch')
+    st.dataframe(sample_data, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 # Dashboard sections - only if data exists
@@ -377,7 +401,7 @@ if st.session_state.df is not None and not st.session_state.df.empty:
     # Data Preview Card
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.markdown('<h2 class="subheader">🔍 Data Preview</h2>', unsafe_allow_html=True)
-    st.dataframe(st.session_state.df.head(10), width='stretch')
+    st.dataframe(st.session_state.df.head(10), use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
     # Preprocessing Card
@@ -425,7 +449,7 @@ if st.session_state.df is not None and not st.session_state.df.empty:
                     reset_df[ffill_cols] = reset_df[ffill_cols].ffill()
                 for col in reset_df.columns:
                     if any(x in str(col).upper() for x in ['NUMBER', 'PHONE', 'NOK', 'CONTACT', 'TEL']):
-                        reset_df[col] = df[col].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
+                        reset_df[col] = reset_df[col].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
                 st.session_state.df = reset_df.copy()
                 st.session_state.original_columns = reset_df.columns.tolist()
                 st.success("Reset successful")
@@ -457,7 +481,7 @@ if st.session_state.df is not None and not st.session_state.df.empty:
                     results = results[mask]
             if not results.empty:
                 st.success(f"{len(results)} matches")
-                st.dataframe(results, width='stretch')
+                st.dataframe(results, use_container_width=True)
                 st.session_state.filtered_data = results
                 if len(results) == 1:
                     transp = results.T.reset_index()
@@ -525,7 +549,7 @@ if st.session_state.df is not None and not st.session_state.df.empty:
             st.success(f"{len(filtered)} records")
 
         if st.session_state.filtered_data is not None:
-            st.dataframe(st.session_state.filtered_data, width='stretch')
+            st.dataframe(st.session_state.filtered_data, use_container_width=True)
 
     with tabs[2]:
         st.markdown(f'<h3 style="color: {tertiary_color};">📊 Analysis</h3>', unsafe_allow_html=True)
@@ -535,9 +559,15 @@ if st.session_state.df is not None and not st.session_state.df.empty:
             with col1:
                 gender_cnt = st.session_state.df[gender_col].value_counts()
                 fig_gender = px.pie(values=gender_cnt.values, names=gender_cnt.index, title="Gender", color_discrete_sequence=color_seq, template=plotly_theme)
-                fig_gender.update_traces(textposition='inside', textinfo='percent+label', textfont=dict(color=text_color))
-                fig_gender.update_layout(paper_bgcolor=background_color, plot_bgcolor=background_color, font_color=text_color)
-                st.plotly_chart(fig_gender, width='stretch')
+                fig_gender.update_traces(textposition='inside', textinfo='percent+label', textfont=dict(color=text_color, size=14))
+                fig_gender.update_layout(
+                    paper_bgcolor=background_color,
+                    plot_bgcolor=background_color,
+                    font_color=text_color,
+                    title_font_color=primary_color,
+                    margin=dict(t=50, b=50, l=50, r=50)
+                )
+                st.plotly_chart(fig_gender, use_container_width=True)
         if 'Age' in st.session_state.df.columns:
             with col2:
                 age_data = st.session_state.df['Age'].dropna().astype(float)
@@ -547,21 +577,39 @@ if st.session_state.df is not None and not st.session_state.df.empty:
                     age_groups = pd.cut(age_data, bins, labels=labels)
                     age_cnt = age_groups.value_counts().sort_index()
                     fig_age = px.bar(x=age_cnt.index, y=age_cnt.values, title="Age Groups", color=age_cnt.index, color_discrete_sequence=color_seq, template=plotly_theme)
-                    fig_age.update_layout(paper_bgcolor=background_color, plot_bgcolor=background_color, font_color=text_color)
-                    st.plotly_chart(fig_age, width='stretch')
+                    fig_age.update_layout(
+                        paper_bgcolor=background_color,
+                        plot_bgcolor=background_color,
+                        font_color=text_color,
+                        title_font_color=primary_color,
+                        margin=dict(t=50, b=50, l=50, r=50)
+                    )
+                    st.plotly_chart(fig_age, use_container_width=True)
         col3, col4 = st.columns(2)
         if batch_col:
             with col3:
                 batch_cnt = st.session_state.df[batch_col].value_counts()
                 fig_batch = px.bar(x=batch_cnt.index, y=batch_cnt.values, title="Batches", color=batch_cnt.index, color_discrete_sequence=color_seq, template=plotly_theme)
-                fig_batch.update_layout(paper_bgcolor=background_color, plot_bgcolor=background_color, font_color=text_color)
-                st.plotly_chart(fig_batch, width='stretch')
+                fig_batch.update_layout(
+                    paper_bgcolor=background_color,
+                    plot_bgcolor=background_color,
+                    font_color=text_color,
+                    title_font_color=primary_color,
+                    margin=dict(t=50, b=50, l=50, r=50)
+                )
+                st.plotly_chart(fig_batch, use_container_width=True)
         if company_col:
             with col4:
                 comp_cnt = st.session_state.df[company_col].value_counts().head(10)
                 fig_comp = px.bar(y=comp_cnt.index, x=comp_cnt.values, orientation='h', title="Top Companies", color=comp_cnt.index, color_discrete_sequence=color_seq, template=plotly_theme)
-                fig_comp.update_layout(paper_bgcolor=background_color, plot_bgcolor=background_color, font_color=text_color)
-                st.plotly_chart(fig_comp, width='stretch')
+                fig_comp.update_layout(
+                    paper_bgcolor=background_color,
+                    plot_bgcolor=background_color,
+                    font_color=text_color,
+                    title_font_color=primary_color,
+                    margin=dict(t=50, b=50, l=50, r=50)
+                )
+                st.plotly_chart(fig_comp, use_container_width=True)
 
     with tabs[3]:
         st.markdown(f'<h3 style="color: {tertiary_color};">💾 Export</h3>', unsafe_allow_html=True)
