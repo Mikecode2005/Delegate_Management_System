@@ -1,22 +1,36 @@
-
 import streamlit as st
 import pandas as pd
 import io
 import plotly.express as px
 from datetime import datetime
 import numpy as np
-import traceback
 import re
 
-# Set page configuration for modern dashboard
+# Set page configuration for modern dashboard (FIXED: removed problematic emoji)
 st.set_page_config(
     page_title="Delegate Management Dashboard",
     layout="wide",
-    page_icon="\ud83d\udc65",
+    page_icon="👥",  # Fixed: Using standard emoji
     initial_sidebar_state="expanded"
 )
 
 # ================ UTILITY FUNCTIONS ================
+
+def clean_dataframe_for_display(df):
+    """
+    Clean dataframe to ensure Arrow compatibility for Streamlit display
+    """
+    df_clean = df.copy()
+    
+    for col in df_clean.columns:
+        # Convert mixed types to string to avoid Arrow serialization issues
+        if df_clean[col].dtype == 'object':
+            df_clean[col] = df_clean[col].astype(str)
+        
+        # Handle None/NaN values
+        df_clean[col] = df_clean[col].fillna('')
+    
+    return df_clean
 
 def safe_process_data(df, header_row=0, auto_ffill=True):
     """
@@ -24,8 +38,7 @@ def safe_process_data(df, header_row=0, auto_ffill=True):
     """
     try:
         # Set column names
-        df.columns = [str(col).strip().replace('\
-', ' ').title() for col in df.columns]
+        df.columns = [str(col).strip().replace('\n', ' ').title() for col in df.columns]
         
         # Forward fill date-related columns if auto_ffill is enabled
         if auto_ffill:
@@ -55,8 +68,7 @@ def safe_process_data(df, header_row=0, auto_ffill=True):
         
         return df, None
     except Exception as e:
-        error_msg = f"Error processing data: {str(e)}\
-{traceback.format_exc()}"
+        error_msg = f"Error processing data: {str(e)}"
         return df, error_msg
 
 def get_column_by_pattern(df, pattern_list, default=None):
@@ -134,9 +146,7 @@ THEMES = {
 
 # Initialize theme in session state
 if 'theme' not in st.session_state:
-    # Detect browser's dark mode preference
-    is_browser_dark = st.query_params.get("theme", ["light"])[0].lower() == "dark"
-    st.session_state.theme = "Dark" if is_browser_dark else "Light"
+    st.session_state.theme = "Light"
 
 # Get current theme colors
 current_theme = THEMES[st.session_state.theme]
@@ -320,7 +330,7 @@ if 'error_log' not in st.session_state:
 # ================ SIDEBAR ================
 
 with st.sidebar:
-    st.markdown(f'<h3 style="color: {primary_color};">\u2699\ufe0f Control Panel</h3>', unsafe_allow_html=True)
+    st.markdown(f'<h3 style="color: {primary_color};">⚙️ Control Panel</h3>', unsafe_allow_html=True)
     
     # Theme selector
     selected_theme = st.selectbox(
@@ -379,7 +389,7 @@ st.markdown('<h1 class="main-header">Delegate Management Dashboard</h1>', unsafe
 # ================ FILE UPLOAD SECTION ================
 
 st.markdown(f'<div class="card {card_class}">', unsafe_allow_html=True)
-st.markdown(f'<h2 class="section-header">\ud83d\udce4 Upload Data</h2>', unsafe_allow_html=True)
+st.markdown(f'<h2 class="section-header">📤 Upload Data</h2>', unsafe_allow_html=True)
 
 uploaded_file = st.file_uploader("Upload Excel/CSV", type=["xlsx", "csv"], key="uploader")
 
@@ -405,8 +415,8 @@ if uploaded_file:
                     st.stop()
         
         # Preview raw data
-        with st.expander("\ud83d\udd0d Preview Raw Data", expanded=True):
-            st.dataframe(temp_df.head(10), use_container_width=True)
+        with st.expander("🔍 Preview Raw Data", expanded=True):
+            st.dataframe(clean_dataframe_for_display(temp_df.head(10)), width='stretch')  # FIXED: use width instead of use_container_width
         
         # Header row selection
         header_row = st.selectbox(
@@ -439,17 +449,15 @@ if uploaded_file:
             st.session_state.df = df.copy()
             st.session_state.original_columns = df.columns.tolist()
             st.session_state.processed = True
-            st.success("Data uploaded and processed successfully! \ud83c\udf89")
+            st.success("Data uploaded and processed successfully! 🎉")
             
         except Exception as e:
             st.error(f"Error processing file: {str(e)}")
-            st.session_state.error_log.append(f"Error processing file: {str(e)}\
-{traceback.format_exc()}")
+            st.session_state.error_log.append(f"Error processing file: {str(e)}")
     
     except Exception as e:
         st.error(f"Error reading file: {str(e)}")
-        st.session_state.error_log.append(f"Error reading file: {str(e)}\
-{traceback.format_exc()}")
+        st.session_state.error_log.append(f"Error reading file: {str(e)}")
 
 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -458,7 +466,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 # Sample data - only if explicitly enabled and no uploaded data
 if show_sample and (st.session_state.df is None or st.session_state.df.empty):
     st.markdown(f'<div class="card {card_class}">', unsafe_allow_html=True)
-    st.markdown('<h2 class="section-header">\ud83d\udccb Sample Data</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="section-header">📋 Sample Data</h2>', unsafe_allow_html=True)
     
     try:
         # Create sample data
@@ -490,12 +498,11 @@ if show_sample and (st.session_state.df is None or st.session_state.df.empty):
         st.session_state.original_columns = sample_data.columns.tolist()
         st.session_state.processed = True
         
-        st.dataframe(sample_data, use_container_width=True)
+        st.dataframe(clean_dataframe_for_display(sample_data), width='stretch')  # FIXED: use width instead of use_container_width
         
     except Exception as e:
         st.error(f"Error creating sample data: {str(e)}")
-        st.session_state.error_log.append(f"Error creating sample data: {str(e)}\
-{traceback.format_exc()}")
+        st.session_state.error_log.append(f"Error creating sample data: {str(e)}")
     
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -506,7 +513,7 @@ if st.session_state.df is not None and not st.session_state.df.empty:
     # ================ OVERVIEW SECTION ================
     
     st.markdown(f'<div class="card {card_class}">', unsafe_allow_html=True)
-    st.markdown('<h2 class="section-header">\ud83d\udcca Overview</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="section-header">📊 Overview</h2>', unsafe_allow_html=True)
     
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -526,17 +533,17 @@ if st.session_state.df is not None and not st.session_state.df.empty:
             "Null Count": st.session_state.df.isna().sum(),
             "Unique Values": st.session_state.df.nunique()
         })
-        st.dataframe(col_info, use_container_width=True)
+        st.dataframe(clean_dataframe_for_display(col_info), width='stretch')  # FIXED
     
     st.markdown('</div>', unsafe_allow_html=True)
     
     # ================ DATA PREVIEW SECTION ================
     
     st.markdown(f'<div class="card {card_class}">', unsafe_allow_html=True)
-    st.markdown('<h2 class="section-header">\ud83d\udd0d Data Preview</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="section-header">🔍 Data Preview</h2>', unsafe_allow_html=True)
     
     preview_rows = st.slider("Preview Rows", 5, 50, 10)
-    st.dataframe(st.session_state.df.head(preview_rows), use_container_width=True)
+    st.dataframe(clean_dataframe_for_display(st.session_state.df.head(preview_rows)), width='stretch')  # FIXED
     
     st.markdown('</div>', unsafe_allow_html=True)
     
@@ -548,7 +555,7 @@ if st.session_state.df is not None and not st.session_state.df.empty:
     # ================ DATA PROCESSING TAB ================
     
     with tabs[0]:
-        st.markdown(f'<h3 style="color: {tertiary_color};">\u2699\ufe0f Data Processing</h3>', unsafe_allow_html=True)
+        st.markdown(f'<h3 style="color: {tertiary_color};">⚙️ Data Processing</h3>', unsafe_allow_html=True)
         
         col1, col2 = st.columns(2)
         
@@ -641,15 +648,13 @@ if st.session_state.df is not None and not st.session_state.df.empty:
                         st.warning("No file uploaded to reset from")
                 except Exception as e:
                     st.error(f"Error resetting data: {str(e)}")
-                    st.session_state.error_log.append(f"Error resetting data: {str(e)}\
-{traceback.format_exc()}")
+                    st.session_state.error_log.append(f"Error resetting data: {str(e)}")
         
         # Error log expander
         if st.session_state.error_log:
             with st.expander("Error Log"):
                 for i, error in enumerate(st.session_state.error_log):
-                    st.text(f"Error {i+1}:\
-{error}")
+                    st.text(f"Error {i+1}:\n{error}")
                 if st.button("Clear Error Log"):
                     st.session_state.error_log = []
                     st.success("Error log cleared")
@@ -657,13 +662,13 @@ if st.session_state.df is not None and not st.session_state.df.empty:
     # ================ SEARCH & FILTER TAB ================
     
     with tabs[1]:
-        st.markdown(f'<h3 style="color: {tertiary_color};">\ud83d\udd0d Search & Filter</h3>', unsafe_allow_html=True)
+        st.markdown(f'<h3 style="color: {tertiary_color};">🔍 Search & Filter</h3>', unsafe_allow_html=True)
         
         search_tabs = st.tabs(["Individual Search", "Multi-Filter"])
         
         # Individual Search
         with search_tabs[0]:
-            st.markdown("### \ud83d\udc64 Individual Search")
+            st.markdown("### 👤 Individual Search")
             
             col1, col2 = st.columns(2)
             with col1:
@@ -698,14 +703,14 @@ if st.session_state.df is not None and not st.session_state.df.empty:
                     if not results.empty:
                         st.success(f"Found {len(results)} matching records")
                         st.session_state.filtered_data = results
-                        st.dataframe(results, use_container_width=True)
+                        st.dataframe(clean_dataframe_for_display(results), width='stretch')  # FIXED
                         
                         # Show detailed view for single result
                         if len(results) == 1:
                             st.markdown("### Detailed Record")
                             transp = results.T.reset_index()
                             transp.columns = ['Field', 'Value']
-                            st.table(transp)
+                            st.table(clean_dataframe_for_display(transp))
                             
                             # Download single record
                             with io.BytesIO() as buf:
@@ -717,14 +722,13 @@ if st.session_state.df is not None and not st.session_state.df.empty:
                 
                 except Exception as e:
                     st.error(f"Error searching data: {str(e)}")
-                    st.session_state.error_log.append(f"Error searching data: {str(e)}\
-{traceback.format_exc()}")
+                    st.session_state.error_log.append(f"Error searching data: {str(e)}")
             else:
                 st.info("Enter search terms to find records")
         
         # Multi-Filter
         with search_tabs[1]:
-            st.markdown("### \ud83d\udd22 Multi-Filter")
+            st.markdown("### 🔧 Multi-Filter")
             
             try:
                 col1, col2 = st.columns(2)
@@ -734,7 +738,7 @@ if st.session_state.df is not None and not st.session_state.df.empty:
                 if company_col:
                     with col1:
                         companies = ['All'] + sorted(st.session_state.df[company_col].dropna().unique().tolist())
-                        sel_comp = st.multiselect("Companies \ud83c\udfe2", companies, default=['All'])
+                        sel_comp = st.multiselect("Companies 🏢", companies, default=['All'])
                         if 'All' in sel_comp:
                             sel_comp = st.session_state.df[company_col].unique().tolist()
                 
@@ -743,7 +747,7 @@ if st.session_state.df is not None and not st.session_state.df.empty:
                 if batch_col:
                     with col1:
                         batches = ['All'] + sorted(st.session_state.df[batch_col].dropna().unique().tolist())
-                        sel_batch = st.multiselect("Batches \ud83d\udcc2", batches, default=['All'])
+                        sel_batch = st.multiselect("Batches 📂", batches, default=['All'])
                         if 'All' in sel_batch:
                             sel_batch = st.session_state.df[batch_col].unique().tolist()
                 
@@ -752,7 +756,7 @@ if st.session_state.df is not None and not st.session_state.df.empty:
                 if date_col:
                     with col2:
                         dates = ['All'] + sorted(st.session_state.df[date_col].dropna().unique().tolist())
-                        sel_date = st.multiselect("Dates \ud83d\udcc5", dates, default=['All'])
+                        sel_date = st.multiselect("Dates 📅", dates, default=['All'])
                         if 'All' in sel_date:
                             sel_date = st.session_state.df[date_col].unique().tolist()
                 
@@ -761,7 +765,7 @@ if st.session_state.df is not None and not st.session_state.df.empty:
                 if gender_col:
                     with col2:
                         genders = ['All'] + sorted(st.session_state.df[gender_col].dropna().unique().tolist())
-                        sel_gender = st.multiselect("Genders \ud83d\udc65", genders, default=['All'])
+                        sel_gender = st.multiselect("Genders 👥", genders, default=['All'])
                         if 'All' in sel_gender:
                             sel_gender = st.session_state.df[gender_col].unique().tolist()
                 
@@ -786,17 +790,16 @@ if st.session_state.df is not None and not st.session_state.df.empty:
                 
                 # Display filtered data
                 if st.session_state.filtered_data is not None:
-                    st.dataframe(st.session_state.filtered_data, use_container_width=True)
+                    st.dataframe(clean_dataframe_for_display(st.session_state.filtered_data), width='stretch')  # FIXED
             
             except Exception as e:
                 st.error(f"Error applying filters: {str(e)}")
-                st.session_state.error_log.append(f"Error applying filters: {str(e)}\
-{traceback.format_exc()}")
+                st.session_state.error_log.append(f"Error applying filters: {str(e)}")
     
     # ================ ANALYSIS TAB ================
     
     with tabs[2]:
-        st.markdown(f'<h3 style="color: {tertiary_color};">\ud83d\udcca Analysis</h3>', unsafe_allow_html=True)
+        st.markdown(f'<h3 style="color: {tertiary_color};">📈 Analysis</h3>', unsafe_allow_html=True)
         
         try:
             # Set color scheme based on chart style
@@ -830,7 +833,7 @@ if st.session_state.df is not None and not st.session_state.df.empty:
                         font_color=text_color,
                         margin=dict(t=50, b=50, l=50, r=50)
                     )
-                    st.plotly_chart(fig_gender, use_container_width=True)
+                    st.plotly_chart(fig_gender, width='stretch')  # FIXED
             
             # Age distribution
             if 'Age' in st.session_state.df.columns:
@@ -856,7 +859,7 @@ if st.session_state.df is not None and not st.session_state.df.empty:
                             font_color=text_color,
                             margin=dict(t=50, b=50, l=50, r=50)
                         )
-                        st.plotly_chart(fig_age, use_container_width=True)
+                        st.plotly_chart(fig_age, width='stretch')  # FIXED
             
             col3, col4 = st.columns(2)
             
@@ -880,7 +883,7 @@ if st.session_state.df is not None and not st.session_state.df.empty:
                         font_color=text_color,
                         margin=dict(t=50, b=50, l=50, r=50)
                     )
-                    st.plotly_chart(fig_batch, use_container_width=True)
+                    st.plotly_chart(fig_batch, width='stretch')  # FIXED
             
             # Company distribution
             company_col = get_column_by_pattern(st.session_state.df, ['COMPANY'])
@@ -903,7 +906,7 @@ if st.session_state.df is not None and not st.session_state.df.empty:
                         font_color=text_color,
                         margin=dict(t=50, b=50, l=50, r=50)
                     )
-                    st.plotly_chart(fig_comp, use_container_width=True)
+                    st.plotly_chart(fig_comp, width='stretch')  # FIXED
             
             # Course date distribution
             date_col = get_column_by_pattern(st.session_state.df, ['COURSE DATE', 'DATE'])
@@ -925,17 +928,16 @@ if st.session_state.df is not None and not st.session_state.df.empty:
                     margin=dict(t=50, b=50, l=50, r=50),
                     xaxis={'categoryorder': 'total descending'}
                 )
-                st.plotly_chart(fig_date, use_container_width=True)
+                st.plotly_chart(fig_date, width='stretch')  # FIXED
         
         except Exception as e:
             st.error(f"Error generating charts: {str(e)}")
-            st.session_state.error_log.append(f"Error generating charts: {str(e)}\
-{traceback.format_exc()}")
+            st.session_state.error_log.append(f"Error generating charts: {str(e)}")
     
     # ================ EXPORT TAB ================
     
     with tabs[3]:
-        st.markdown(f'<h3 style="color: {tertiary_color};">\ud83d\udcbe Export</h3>', unsafe_allow_html=True)
+        st.markdown(f'<h3 style="color: {tertiary_color};">💾 Export</h3>', unsafe_allow_html=True)
         
         col1, col2 = st.columns(2)
         
@@ -989,5 +991,5 @@ else:
 
 # ================ FOOTER ================
 
-st.markdown(f'<div style="text-align: center; color: {primary_color}; padding: 1rem; margin-top: 2rem;">Delegate Management Dashboard v4.0 | \u00a9 2025</div>', unsafe_allow_html=True)
+st.markdown(f'<div style="text-align: center; color: {primary_color}; padding: 1rem; margin-top: 2rem;">Delegate Management Dashboard v4.0 | © 2025</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
