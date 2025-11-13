@@ -158,13 +158,13 @@ def create_performance_card(value, label, change=None):
 def generate_performance_data():
     """Generate mock performance data"""
     return {
-        'total_visitors': 12480,
-        'page_views': 45230,
-        'avg_session': '4m 12s',
+        'total_visitors': 1248,
+        'page_views': 4523,
+        'avg_session': '14m 12s',
         'bounce_rate': 32.5,
         'conversion_rate': 8.7,
-        'revenue': '$12,480',
-        'active_users': 2450,
+        'total_sessions': '32,48',
+        'active_trainees': 2450,
         'growth_rate': 18.3
     }
 
@@ -1414,3 +1414,4 @@ st.markdown(f"""
     </div>
 </div>
 """, unsafe_allow_html=True)
+
