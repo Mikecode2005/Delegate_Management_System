@@ -721,7 +721,7 @@ if st.session_state.show_performance and st.session_state.df is None:
     
     with col2:
         st.markdown(create_performance_card(
-            "📄", 
+            "", 
             f"{perf_data['page_views']:,}", 
             "Page Views", 
             change=8.7,
@@ -730,7 +730,7 @@ if st.session_state.show_performance and st.session_state.df is None:
     
     with col3:
         st.markdown(create_performance_card(
-            "⏱️", 
+            "", 
             perf_data['avg_session'], 
             "Avg Session", 
             change=5.2,
@@ -739,7 +739,7 @@ if st.session_state.show_performance and st.session_state.df is None:
     
     with col4:
         st.markdown(create_performance_card(
-            "📉", 
+            "", 
             f"{perf_data['bounce_rate']}%", 
             "Bounce Rate", 
             change=-3.1,
@@ -755,7 +755,7 @@ if st.session_state.show_performance and st.session_state.df is None:
     
     with col5:
         st.markdown(create_performance_card(
-            "🎯", 
+            "", 
             f"{perf_data['conversion_rate']}%", 
             "Conversion Rate", 
             change=15.3,
@@ -764,7 +764,7 @@ if st.session_state.show_performance and st.session_state.df is None:
     
     with col6:
         st.markdown(create_performance_card(
-            "💰", 
+            "", 
             perf_data['revenue'], 
             "Revenue", 
             change=22.8,
@@ -773,7 +773,7 @@ if st.session_state.show_performance and st.session_state.df is None:
     
     with col7:
         st.markdown(create_performance_card(
-            "🔥", 
+            "", 
             f"{perf_data['active_users']:,}", 
             "Active Users", 
             change=18.3,
@@ -782,7 +782,7 @@ if st.session_state.show_performance and st.session_state.df is None:
     
     with col8:
         st.markdown(create_performance_card(
-            "📊", 
+            "", 
             f"{perf_data['growth_rate']}%", 
             "Growth Rate", 
             change=6.9,
@@ -1445,3 +1445,4 @@ st.markdown(f"""
     </div>
 </div>
 """, unsafe_allow_html=True)
+
