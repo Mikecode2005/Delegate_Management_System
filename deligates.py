@@ -139,7 +139,7 @@ def create_donut_chart(labels, values, title):
 
     return fig
 
-def create_performance_card(icon, value, label, change=None, progress=None):
+def create_performance_card(value, label, change=None):
     """Create a performance metric card"""
     change_html = ""
     if change is not None:
@@ -147,21 +147,11 @@ def create_performance_card(icon, value, label, change=None, progress=None):
         change_symbol = "↗" if change > 0 else "↘"
         change_html = f'<div class="perf-change {change_class}">{change_symbol} {abs(change)}%</div>'
     
-    progress_html = ""
-    if progress is not None:
-        progress_html = f'''
-        <div class="progress-container">
-            <div class="progress-bar" style="width: {progress}%"></div>
-        </div>
-        '''
-    
     return f"""
     <div class="perf-card">
-        <div class="perf-icon">{icon}</div>
         <div class="perf-value">{value}</div>
         <div class="perf-label">{label}</div>
         {change_html}
-        {progress_html}
     </div>
     """
 
@@ -572,11 +562,6 @@ st.markdown(f"""
         box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
     }}
 
-    .perf-icon {{
-        font-size: 2.5rem;
-        margin-bottom: 1rem;
-    }}
-
     .perf-value {{
         font-size: 2.25rem;
         font-weight: 800;
@@ -712,38 +697,30 @@ if st.session_state.show_performance and st.session_state.df is None:
     
     with col1:
         st.markdown(create_performance_card(
-            "👥", 
             f"{perf_data['total_visitors']:,}", 
             "Total Visitors", 
-            change=12.4,
-            progress=85
+            change=12.4
         ), unsafe_allow_html=True)
     
     with col2:
         st.markdown(create_performance_card(
-            "", 
             f"{perf_data['page_views']:,}", 
             "Page Views", 
-            change=8.7,
-            progress=72
+            change=8.7
         ), unsafe_allow_html=True)
     
     with col3:
         st.markdown(create_performance_card(
-            "", 
             perf_data['avg_session'], 
             "Avg Session", 
-            change=5.2,
-            progress=65
+            change=5.2
         ), unsafe_allow_html=True)
     
     with col4:
         st.markdown(create_performance_card(
-            "", 
             f"{perf_data['bounce_rate']}%", 
             "Bounce Rate", 
-            change=-3.1,
-            progress=32
+            change=-3.1
         ), unsafe_allow_html=True)
     
     st.markdown('</div>', unsafe_allow_html=True)
@@ -755,38 +732,30 @@ if st.session_state.show_performance and st.session_state.df is None:
     
     with col5:
         st.markdown(create_performance_card(
-            "", 
             f"{perf_data['conversion_rate']}%", 
             "Conversion Rate", 
-            change=15.3,
-            progress=87
+            change=15.3
         ), unsafe_allow_html=True)
     
     with col6:
         st.markdown(create_performance_card(
-            "", 
             perf_data['revenue'], 
             "Revenue", 
-            change=22.8,
-            progress=92
+            change=22.8
         ), unsafe_allow_html=True)
     
     with col7:
         st.markdown(create_performance_card(
-            "", 
             f"{perf_data['active_users']:,}", 
             "Active Users", 
-            change=18.3,
-            progress=78
+            change=18.3
         ), unsafe_allow_html=True)
     
     with col8:
         st.markdown(create_performance_card(
-            "", 
             f"{perf_data['growth_rate']}%", 
             "Growth Rate", 
-            change=6.9,
-            progress=68
+            change=6.9
         ), unsafe_allow_html=True)
     
     st.markdown('</div>', unsafe_allow_html=True)
@@ -1097,7 +1066,7 @@ if st.session_state.df is not None and not st.session_state.df.empty:
                         line=dict(color=primary_color, width=3),
                         marker=dict(size=10, color=secondary_color, line=dict(color=text_color, width=2)),
                         fill='tozeroy',
-                        fillcolor=f'{primary_color}30',
+                        fillcolor='rgba(37, 99, 235, 0.3)',  # Fixed color format
                         hovertemplate='<b>%{x}</b><br>Count: %{y}<extra></extra>'
                     ))
 
@@ -1445,4 +1414,3 @@ st.markdown(f"""
     </div>
 </div>
 """, unsafe_allow_html=True)
-
