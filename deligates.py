@@ -139,41 +139,32 @@ def create_donut_chart(labels, values, title):
 
     return fig
 
-def create_performance_card(value, label, change=None, progress=None):
-    """Create a performance metric card with progress bar"""
+def create_performance_card(value, label, change=None):
+    """Create a performance metric card"""
     change_html = ""
     if change is not None:
         change_class = "change-positive" if change > 0 else "change-negative"
         change_symbol = "↗" if change > 0 else "↘"
         change_html = f'<div class="perf-change {change_class}">{change_symbol} {abs(change)}%</div>'
     
-    progress_html = ""
-    if progress is not None:
-        progress_html = f'''
-        <div class="perf-progress-container">
-            <div class="perf-progress-bar" style="width: {progress}%"></div>
-        </div>
-        '''
-    
     return f"""
     <div class="perf-card">
         <div class="perf-value">{value}</div>
         <div class="perf-label">{label}</div>
         {change_html}
-        {progress_html}
     </div>
     """
 
 def generate_performance_data():
     """Generate mock performance data"""
     return {
-        'total_visitors': 1248,
-        'page_views': 4523,
-        'avg_session': '14m 12s',
+        'total_visitors': 12480,
+        'page_views': 45230,
+        'avg_session': '4m 12s',
         'bounce_rate': 32.5,
         'conversion_rate': 8.7,
-        'total_sessions': '32,48',
-        'active_trainees': 2450,
+        'revenue': '$12,480',
+        'active_users': 2450,
         'growth_rate': 18.3
     }
 
@@ -607,23 +598,6 @@ st.markdown(f"""
         color: #EF4444;
     }}
 
-    /* Performance Progress Bars */
-    .perf-progress-container {{
-        width: 100%;
-        height: 8px;
-        background: {border_color};
-        border-radius: 10px;
-        overflow: hidden;
-        margin: 1rem 0;
-    }}
-
-    .perf-progress-bar {{
-        height: 100%;
-        background: linear-gradient(90deg, {gradient_start}, {gradient_end});
-        border-radius: 10px;
-        transition: width 0.8s ease-in-out;
-    }}
-
     /* Stats highlight */
     .stats-highlight {{
         background: linear-gradient(135deg, {gradient_start} 0%, {gradient_end} 100%);
@@ -725,32 +699,28 @@ if st.session_state.show_performance and st.session_state.df is None:
         st.markdown(create_performance_card(
             f"{perf_data['total_visitors']:,}", 
             "Total Visitors", 
-            change=12.4,
-            progress=85
+            change=12.4
         ), unsafe_allow_html=True)
     
     with col2:
         st.markdown(create_performance_card(
             f"{perf_data['page_views']:,}", 
             "Page Views", 
-            change=8.7,
-            progress=72
+            change=8.7
         ), unsafe_allow_html=True)
     
     with col3:
         st.markdown(create_performance_card(
             perf_data['avg_session'], 
             "Avg Session", 
-            change=5.2,
-            progress=65
+            change=5.2
         ), unsafe_allow_html=True)
     
     with col4:
         st.markdown(create_performance_card(
             f"{perf_data['bounce_rate']}%", 
             "Bounce Rate", 
-            change=-3.1,
-            progress=32
+            change=-3.1
         ), unsafe_allow_html=True)
     
     st.markdown('</div>', unsafe_allow_html=True)
@@ -764,32 +734,28 @@ if st.session_state.show_performance and st.session_state.df is None:
         st.markdown(create_performance_card(
             f"{perf_data['conversion_rate']}%", 
             "Conversion Rate", 
-            change=15.3,
-            progress=87
+            change=15.3
         ), unsafe_allow_html=True)
     
     with col6:
         st.markdown(create_performance_card(
-            perf_data['total_sessions'], 
-            "Total Sessions", 
-            change=22.8,
-            progress=92
+            perf_data['revenue'], 
+            "Revenue", 
+            change=22.8
         ), unsafe_allow_html=True)
     
     with col7:
         st.markdown(create_performance_card(
-            f"{perf_data['active_trainees']:,}", 
-            "Active Trainees", 
-            change=18.3,
-            progress=78
+            f"{perf_data['active_users']:,}", 
+            "Active Users", 
+            change=18.3
         ), unsafe_allow_html=True)
     
     with col8:
         st.markdown(create_performance_card(
             f"{perf_data['growth_rate']}%", 
             "Growth Rate", 
-            change=6.9,
-            progress=68
+            change=6.9
         ), unsafe_allow_html=True)
     
     st.markdown('</div>', unsafe_allow_html=True)
